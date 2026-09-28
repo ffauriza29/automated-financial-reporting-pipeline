@@ -63,3 +63,29 @@ def parse_filename(filename):
     project_name = re.sub(r'^\d{1,2}[.\-_]\d{1,2}[.\-_]?\d{0,2}\s*[-]?\s*', '', name)
     
     return month, year, project_name
+
+
+### Phase 2: Data Cleaning & Noise Reduction
+
+Since row numbers shifted between files, a position-based approach (e.g., "get data from row 20") would fail. I designed a Keyword Search & State Machine algorithm to scan label columns.
+Key Solutions:
+✅ **Handling Shifting Rows**: Script scans Column C for specific keywords (TOTAL REVENUE, GROSS PROFIT) and retrieves corresponding values, ignoring row shifts
+✅ **Removing Noise**: Ignores rows containing "Check#" or "Coefficient" (advertisement text)
+✅ **Text Normalization**: Cleans category labels with dynamic descriptions in parentheses for proper grouping
+
+```python
+def clean_label(text):
+    """
+    Cleans category labels by removing text in parentheses.
+    Input: 'Direct labor costs (Attendant Alex - $12)'
+    Output: 'Direct labor costs'
+    """
+    if not text: return ""
+    return text.split('(')[0].strip()
+
+# State Machine logic to avoid 'noise' rows
+if "TOTAL COGS" in text_c:
+    data['Total COGS'] = val_e
+    in_cogs_section = False  # Stop searching COGS details, avoid 'Check#' rows below
+
+
