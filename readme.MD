@@ -63,7 +63,7 @@ def parse_filename(filename):
     project_name = re.sub(r'^\d{1,2}[.\-_]\d{1,2}[.\-_]?\d{0,2}\s*[-]?\s*', '', name)
     
     return month, year, project_name
-python```
+```
 
 ### Phase 2: Data Cleaning & Noise Reduction
 
@@ -87,4 +87,4 @@ def clean_label(text):
 if "TOTAL COGS" in text_c:
     data['Total COGS'] = val_e
     in_cogs_section = False  # Stop searching COGS details, avoid 'Check#' rows below
-python```
+```
