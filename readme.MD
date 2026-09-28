@@ -109,7 +109,7 @@ annual_summary = df.groupby('Year')[['Total Revenue', 'Total Expenses', 'Net Pro
 ```
 ---
 
-##📈 The Output: Financial Dashboard
+## 📈 The Output: Financial Dashboard
 The pipeline produces an integrated, clean, and decision-ready Google Sheets file.
 **1. Annual P&L with KPI Scorecard**
 
@@ -117,13 +117,17 @@ Provides an executive summary at the top with key metrics (Total Revenue, Total 
 **2. Monthly P&L Comparative Report**
 Breaks down 12-month data into a horizontal format, enabling clients to compare spending month-to-month on an apple-to-apples basis. Includes Conditional Formatting (Green for profit, Red for loss) for easy visual reading.
 
+---
 
-##💡 Key Takeaways
+## 💡 Key Takeaways
 **Never Trust Raw Data**: Real-world data is almost always messy. Building robust logic (like keyword search instead of hard-coded row numbers) is crucial for scalability.
 **Automation over Manual Work**: Automating the extraction of 107 files saved an estimated 20+ hours of manual work and eliminated human error risks (copy-paste mistakes).
 **Business Context Matters**: Great Python code is meaningless if the final output isn't readable by business users. Report formatting and structure are as important as data cleanliness.
 
-##How to Run This Project
+
+---
+
+## How to Run This Project
 Clone this repository
 Install dependencies: pip install pandas openpyxl
 Place your Excel files in the sample_data/ folder
@@ -131,6 +135,7 @@ Update FOLDER_PATH in scripts/extract_pnl.py
 Run: python scripts/extract_pnl.py
 Check the output/ folder for the consolidated data
 
+--- 
 
 ##📬 Contact
 LinkedIn: [Your LinkedIn URL]
