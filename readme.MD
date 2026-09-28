@@ -65,6 +65,7 @@ def parse_filename(filename):
     return month, year, project_name
 ```
 
+
 ### Phase 2: Data Cleaning & Noise Reduction
 
 Since row numbers shifted between files, a position-based approach (e.g., "get data from row 20") would fail. I designed a Keyword Search & State Machine algorithm to scan label columns.
@@ -88,3 +89,49 @@ if "TOTAL COGS" in text_c:
     data['Total COGS'] = val_e
     in_cogs_section = False  # Stop searching COGS details, avoid 'Check#' rows below
 ```
+
+
+### Phase 3: Data Transformation & Aggregation
+
+After extracting raw data into a Master DataFrame, I used Pandas for reporting-ready transformations:
+Column Standardization: Forced consistent column ordering matching accounting standards
+Monthly & Yearly Aggregation: Used groupby and sum functions for Monthly and Annual report datasets
+Missing Value Handling: Filled NaN values with 0 for expense categories not used in specific projects
+
+```python
+import pandas as pd
+
+# Fill empty values with 0 for financial report consistency
+df = df.reindex(columns=final_columns, fill_value=0)
+
+# Aggregation for Annual Report (Example)
+annual_summary = df.groupby('Year')[['Total Revenue', 'Total Expenses', 'Net Profit']].sum()
+```
+
+##📈 The Output: Financial Dashboard
+The pipeline produces an integrated, clean, and decision-ready Google Sheets file.
+**1. Annual P&L with KPI Scorecard**
+
+Provides an executive summary at the top with key metrics (Total Revenue, Total Expenses, Net Profit, Profit Margin) dynamically pulled from the database. Expense details are organized into clear categories as requested by the client.
+**2. Monthly P&L Comparative Report**
+Breaks down 12-month data into a horizontal format, enabling clients to compare spending month-to-month on an apple-to-apples basis. Includes Conditional Formatting (Green for profit, Red for loss) for easy visual reading.
+
+
+##💡 Key Takeaways
+**Never Trust Raw Data**: Real-world data is almost always messy. Building robust logic (like keyword search instead of hard-coded row numbers) is crucial for scalability.
+**Automation over Manual Work**: Automating the extraction of 107 files saved an estimated 20+ hours of manual work and eliminated human error risks (copy-paste mistakes).
+**Business Context Matters**: Great Python code is meaningless if the final output isn't readable by business users. Report formatting and structure are as important as data cleanliness.
+
+##How to Run This Project
+Clone this repository
+Install dependencies: pip install pandas openpyxl
+Place your Excel files in the sample_data/ folder
+Update FOLDER_PATH in scripts/extract_pnl.py
+Run: python scripts/extract_pnl.py
+Check the output/ folder for the consolidated data
+
+
+##📬 Contact
+LinkedIn: [Your LinkedIn URL]
+Email: [fauriza29@gmail.com]
+Portfolio: [Your Personal Website/Notion URL]
