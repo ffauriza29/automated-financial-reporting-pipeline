@@ -1,0 +1,8 @@
+# Abaikan folder data asli klien
+raw_data/
+
+
+# Abaikan file sistem
+.DS_Store
+__pycache__/
+*.pyc
