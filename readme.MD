@@ -107,6 +107,7 @@ df = df.reindex(columns=final_columns, fill_value=0)
 # Aggregation for Annual Report (Example)
 annual_summary = df.groupby('Year')[['Total Revenue', 'Total Expenses', 'Net Profit']].sum()
 ```
+---
 
 ##📈 The Output: Financial Dashboard
 The pipeline produces an integrated, clean, and decision-ready Google Sheets file.
