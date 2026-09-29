@@ -42,26 +42,13 @@ A US-based event company needed to consolidate financial reports from 107 indivi
 The first challenge was extracting metadata (Month, Year, Project Name) from highly inconsistent filenames. I used **Regular Expressions (Regex)** to parse varying date patterns.
 
 ```python
-import re
-
 def parse_filename(filename):
-    """
-    Extracts Month, Year, and Project Name from inconsistent filename formats.
-    Input examples: '1.5_1.16.2025 - Project Name.xlsx', '2.11-12.2025 - Event.xlsx'
-    """
     name = filename.replace('.xlsx', '')
-    
-    # Extract Month (first number)
     month_match = re.match(r'^(\d{1,2})', name)
     month = int(month_match.group(1)) if month_match else 0
-    
-    # Extract Year (4-digit number)
     year_match = re.search(r'(\d{4})', name)
     year = int(year_match.group(1)) if year_match else 2025
-    
-    # Extract Project Name (remove date prefix)
     project_name = re.sub(r'^\d{1,2}[.\-_]\d{1,2}[.\-_]?\d{0,2}\s*[-]?\s*', '', name)
-    
     return month, year, project_name
 ```
 
@@ -76,18 +63,52 @@ Key Solutions:
 
 ```python
 def clean_label(text):
-    """
-    Cleans category labels by removing text in parentheses.
-    Input: 'Direct labor costs (Attendant Alex - $12)'
-    Output: 'Direct labor costs'
-    """
     if not text: return ""
     return text.split('(')[0].strip()
 
-# State Machine logic to avoid 'noise' rows
-if "TOTAL COGS" in text_c:
-    data['Total COGS'] = val_e
-    in_cogs_section = False  # Stop searching COGS details, avoid 'Check#' rows below
+def find_value_in_row(ws, row_num, label_text):
+    """Find value at column  C, then find value at column E"""
+    for col in ['C', 'D', 'E', 'F', 'G']:  
+        cell = ws[f'{col}{row_num}']
+        if cell.value and label_text.upper() in str(cell.value).upper():
+            value_cell = ws[f'E{row_num}']
+            return value_cell.value if value_cell.value else 0
+    return 0
+
+def extract_data_from_file(filepath):
+    wb = load_workbook(filepath, data_only=True)
+    ws = wb.active
+    
+    data = {key: 0 for key in TOTALS_IN_ORDER}
+    for cat in CATEGORIES_IN_ORDER:
+        data[cat] = 0
+
+    # Scan all rows (1-50)
+    for row_num in range(1, 51):
+        # Ambil teks dari kolom C
+        cell_c = ws[f'C{row_num}']
+        cell_e = ws[f'E{row_num}']
+        
+        if not cell_c.value:
+            continue
+            
+        text_c = str(cell_c.value).upper()
+        val_e = cell_e.value if cell_e.value is not None else 0
+        
+        # Find TOTALS
+        for total_name in TOTALS_IN_ORDER:
+            if total_name.upper() in text_c:
+                data[total_name] = val_e
+                break
+        
+        # Find CATEGORIES (detail)
+        for cat in CATEGORIES_IN_ORDER:
+            if cat.upper() in text_c:
+                data[cat] = val_e
+                break
+
+    wb.close()
+    return data
 ```
 
 
@@ -99,13 +120,36 @@ Monthly & Yearly Aggregation: Used groupby and sum functions for Monthly and Ann
 Missing Value Handling: Filled NaN values with 0 for expense categories not used in specific projects
 
 ```python
-import pandas as pd
+def main():
+    print("Start data extraction (simplified version)...")
+    all_data = []
+    
+    final_columns = ['Filename', 'Project Name', 'Month', 'Year'] + TOTALS_IN_ORDER + CATEGORIES_IN_ORDER
 
-# Fill empty values with 0 for financial report consistency
-df = df.reindex(columns=final_columns, fill_value=0)
+    for filename in os.listdir(FOLDER_PATH):
+        if filename.endswith('.xlsx') and not filename.startswith('~$'):
+            filepath = os.path.join(FOLDER_PATH, filename)
+            print(f"Processing: {filename}")
+            
+            month, year, project = parse_filename(filename)
+            data = extract_data_from_file(filepath)
+            
+            row_data = {
+                'Filename': filename,
+                'Project Name': project,
+                'Month': month,
+                'Year': year
+            }
+            row_data.update(data)
+            all_data.append(row_data)
 
-# Aggregation for Annual Report (Example)
-annual_summary = df.groupby('Year')[['Total Revenue', 'Total Expenses', 'Net Profit']].sum()
+    df = pd.DataFrame(all_data)
+    df = df.sort_values(by=['Year', 'Month'])
+    df = df.reindex(columns=final_columns, fill_value=0)
+    
+    df.to_excel(OUTPUT_FILE, index=False)
+    print(f"\n✅ Finished! Data stored at {OUTPUT_FILE}")
+    print(f"Total processed file: {len(all_data)}")
 ```
 ---
 
