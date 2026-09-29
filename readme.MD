@@ -8,7 +8,7 @@
 
 ## 🎯 Project Overview
 
-Built an end-to-end automated data pipeline using Python to extract, clean, and transform messy financial data from 107 individual Excel files into professional Annual and Monthly Profit & Loss (P&L) reports. The project automated a process that would have taken 20+ hours of manual work into minutes, delivering accurate results within a tight 36-hour deadline.
+Built an end-to-end automated data pipeline using Python to extract, clean, and transform messy financial data from 107 individual Excel files into Annual and Monthly Profit & Loss (P&L) reports. The project automated a process that would have taken 20+ hours of manual work into minutes, delivering accurate results within a tight deadline.
 
 ---
 
@@ -18,7 +18,6 @@ A US-based event company needed to consolidate financial reports from 107 indivi
 
 - 📂 **Fragmented Data:** 107 separate Excel files with inconsistent filename formats (e.g., `1.5_1.16.2025`, `2.11-12.2025`)
 - 🔄 **Shifting Row Positions:** Critical data positions (Gross Profit, Total Expenses) shifted between files due to variable "noise" rows (payment check numbers)
-- 🗑️ **Noisy Data:** Advertisements and add-on instructions at the bottom of files needed to be ignored
 - ⏰ **Tight Deadline:** Reports needed to be delivered within 36 hours
 
 ---
@@ -26,12 +25,13 @@ A US-based event company needed to consolidate financial reports from 107 indivi
 ## 🛠️ Tech Stack
 
 | Category | Tools |
-|----------|-------|
+| :--- | :--- |
 | **Programming** | Python 3 |
 | **Data Processing** | Pandas, Openpyxl |
 | **Text Parsing** | Regular Expressions (Regex) |
-| **Reporting** | Google Sheets (Advanced Formulas, Pivot Tables, Conditional Formatting) |
-| **Visualization** | Google Sheets Charts, Sparklines |
+| **Reporting** | Google Sheets (Advanced Formulas, KPI Scorecards, Conditional Formatting) |
+| **Visualization** | Google Sheets Charts (Pie Charts) |
+| **Development** | VS Code, Git, GitHub |
 
 ---
 
@@ -39,7 +39,7 @@ A US-based event company needed to consolidate financial reports from 107 indivi
 
 ### Phase 1: Data Ingestion & Filename Parsing
 
-The first challenge was extracting metadata (Month, Year, Project Name) from highly inconsistent filenames. I used Regular Expressions (Regex) to parse varying date patterns across 107 files
+The first challenge was extracting metadata (Month, Year, Project Name) from inconsistent filenames. I used Regular Expressions (Regex) to parse varying date patterns across 107 files
 
 ```python
 import re
@@ -105,10 +105,10 @@ def extract_data_from_file(filepath):
     return data
 ```
 Key Solutions Implemented:
-✅ Handling Shifting Rows: Instead of hardcoding row numbers, the script scans Column C for specific keywords (TOTAL REVENUE, GROSS PROFIT, Direct labor costs, etc.) and retrieves corresponding values from Column E. This makes the extraction robust against row position changes.
-✅ Ignoring Noise Rows: Rows containing "Check #101706 Alex Salinas" or "Coefficient" advertisements don't match any keywords in our target lists, so they're automatically skipped without requiring explicit filtering logic.
-✅ Handling Empty Values: The script initializes all categories with 0 and only updates when a match is found, ensuring consistent output even when certain expense categories are unused in specific projects.
-✅ Flexible Label Matching: Using if cat.upper() in text_c allows partial matching, so "Direct labor costs (Attendant Alex - $12)" successfully matches the keyword "Direct labor costs" without requiring exact string equality.
+- **Handling Shifting Rows**: Instead of hardcoding row numbers, the script scans Column C for specific keywords (TOTAL REVENUE, GROSS PROFIT, Direct labor costs, etc.) and retrieves corresponding values from Column E. This makes the extraction robust against row position changes.
+- **Ignoring Noise Rows**: Rows containing "Check #101706 Alex Salinas" or "Coefficient" advertisements don't match any keywords in our target lists, so they're automatically skipped without requiring explicit filtering logic.
+- **Handling Empty Values**: The script initializes all categories with 0 and only updates when a match is found, ensuring consistent output even when certain expense categories are unused in specific projects.
+- **Flexible Label Matching**: Using if cat.upper() in text_c allows partial matching, so "Direct labor costs (Attendant Alex - $12)" successfully matches the keyword "Direct labor costs" without requiring exact string equality.
 
 
 
@@ -152,10 +152,10 @@ def main():
     df.to_excel(OUTPUT_FILE, index=False)
 ```
 Key Transformations:
-📊 Column Standardization: The final_columns list enforces a consistent column order matching accounting standards (Revenue → COGS → Gross Profit → Expenses → Net Profit), making the output immediately usable for reporting.
-📊 Chronological Sorting: df.sort_values(by=['Year', 'Month']) organizes projects by time period, enabling easy monthly aggregation in the dashboard.
-Missing Value Handling: df.reindex(columns=final_columns, fill_value=0) ensures all 27 expected columns exist in every row, filling any missing categories with 0 for financial report consistency.
-📊 File Filtering: The condition not filename.startswith('~$') excludes temporary Excel lock files that Windows creates when files are open, preventing extraction errors.
+- **Column Standardization**: The final_columns list enforces a consistent column order matching accounting standards, and then making the output immediately usable for reporting.
+- **Chronological Sorting**: df.sort_values(by=['Year', 'Month']) organizes projects by time period, enabling easy monthly aggregation in the dashboard.
+- **Missing Value Handling**: df.reindex(columns=final_columns, fill_value=0) ensures all 27 expected columns exist in every row, filling any missing categories with 0 for data consistency.
+- **File Filtering**: The condition not filename.startswith('~$') excludes temporary Excel lock files that Windows creates when files are open, preventing extraction errors.
 
 
 ---
