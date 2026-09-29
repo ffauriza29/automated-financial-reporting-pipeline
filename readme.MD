@@ -39,42 +39,37 @@ A US-based event company needed to consolidate financial reports from 107 indivi
 
 ### Phase 1: Data Ingestion & Filename Parsing
 
-The first challenge was extracting metadata (Month, Year, Project Name) from highly inconsistent filenames. I used **Regular Expressions (Regex)** to parse varying date patterns.
+The first challenge was extracting metadata (Month, Year, Project Name) from highly inconsistent filenames. I used Regular Expressions (Regex) to parse varying date patterns across 107 files
 
 ```python
+import re
+
 def parse_filename(filename):
+    """
+    Extracts Month, Year, and Project Name from inconsistent filename formats.
+    Input examples: '1.5_1.16.2025 - Project Name.xlsx', '2.11-12.2025 - Event.xlsx'
+    """
     name = filename.replace('.xlsx', '')
+    
+    # Extract Month (first number in filename)
     month_match = re.match(r'^(\d{1,2})', name)
     month = int(month_match.group(1)) if month_match else 0
+    
+    # Extract Year (4-digit number anywhere in filename)
     year_match = re.search(r'(\d{4})', name)
     year = int(year_match.group(1)) if year_match else 2025
+    
+    # Extract Project Name (remove date prefix with various separators)
     project_name = re.sub(r'^\d{1,2}[.\-_]\d{1,2}[.\-_]?\d{0,2}\s*[-]?\s*', '', name)
+    
     return month, year, project_name
 ```
 
 
 ### Phase 2: Data Cleaning & Noise Reduction
 
-Since row numbers shifted between files, a position-based approach (e.g., "get data from row 20") would fail. I designed a Keyword Search & State Machine algorithm to scan label columns.
-Key Solutions:
-✅ **Handling Shifting Rows**: Script scans Column C for specific keywords (TOTAL REVENUE, GROSS PROFIT) and retrieves corresponding values, ignoring row shifts
-✅ **Removing Noise**: Ignores rows containing "Check#" or "Coefficient" (advertisement text)
-✅ **Text Normalization**: Cleans category labels with dynamic descriptions in parentheses for proper grouping
-
+Since row numbers shifted between files due to variable "noise" rows (payment check information, blank rows), a position-based approach (e.g., "get data from row 20") would fail. I designed a Keyword Search Algorithm to scan label columns dynamically.
 ```python
-def clean_label(text):
-    if not text: return ""
-    return text.split('(')[0].strip()
-
-def find_value_in_row(ws, row_num, label_text):
-    """Find value at column  C, then find value at column E"""
-    for col in ['C', 'D', 'E', 'F', 'G']:  
-        cell = ws[f'{col}{row_num}']
-        if cell.value and label_text.upper() in str(cell.value).upper():
-            value_cell = ws[f'E{row_num}']
-            return value_cell.value if value_cell.value else 0
-    return 0
-
 def extract_data_from_file(filepath):
     wb = load_workbook(filepath, data_only=True)
     ws = wb.active
@@ -83,9 +78,8 @@ def extract_data_from_file(filepath):
     for cat in CATEGORIES_IN_ORDER:
         data[cat] = 0
 
-    # Scan all rows (1-50)
+    # Scan rows 1-50 (covers all data sections + noise)
     for row_num in range(1, 51):
-        # Ambil teks dari kolom C
         cell_c = ws[f'C{row_num}']
         cell_e = ws[f'E{row_num}']
         
@@ -95,13 +89,13 @@ def extract_data_from_file(filepath):
         text_c = str(cell_c.value).upper()
         val_e = cell_e.value if cell_e.value is not None else 0
         
-        # Find TOTALS
+        # Match against TOTALS keywords
         for total_name in TOTALS_IN_ORDER:
             if total_name.upper() in text_c:
                 data[total_name] = val_e
                 break
         
-        # Find CATEGORIES (detail)
+        # Match against DETAIL CATEGORIES keywords
         for cat in CATEGORIES_IN_ORDER:
             if cat.upper() in text_c:
                 data[cat] = val_e
@@ -110,26 +104,30 @@ def extract_data_from_file(filepath):
     wb.close()
     return data
 ```
+Key Solutions Implemented:
+✅ Handling Shifting Rows: Instead of hardcoding row numbers, the script scans Column C for specific keywords (TOTAL REVENUE, GROSS PROFIT, Direct labor costs, etc.) and retrieves corresponding values from Column E. This makes the extraction robust against row position changes.
+✅ Ignoring Noise Rows: Rows containing "Check #101706 Alex Salinas" or "Coefficient" advertisements don't match any keywords in our target lists, so they're automatically skipped without requiring explicit filtering logic.
+✅ Handling Empty Values: The script initializes all categories with 0 and only updates when a match is found, ensuring consistent output even when certain expense categories are unused in specific projects.
+✅ Flexible Label Matching: Using if cat.upper() in text_c allows partial matching, so "Direct labor costs (Attendant Alex - $12)" successfully matches the keyword "Direct labor costs" without requiring exact string equality.
+
 
 
 ### Phase 3: Data Transformation & Aggregation
 
-After extracting raw data into a Master DataFrame, I used Pandas for reporting-ready transformations:
-Column Standardization: Forced consistent column ordering matching accounting standards
-Monthly & Yearly Aggregation: Used groupby and sum functions for Monthly and Annual report datasets
-Missing Value Handling: Filled NaN values with 0 for expense categories not used in specific projects
+After extracting raw data from all 107 files into a list of dictionaries, I used Pandas to transform the data into a reporting-ready format.
 
 ```python
+import pandas as pd
+
 def main():
-    print("Start data extraction (simplified version)...")
     all_data = []
     
+    # Define final column order (metadata + totals + details)
     final_columns = ['Filename', 'Project Name', 'Month', 'Year'] + TOTALS_IN_ORDER + CATEGORIES_IN_ORDER
 
     for filename in os.listdir(FOLDER_PATH):
         if filename.endswith('.xlsx') and not filename.startswith('~$'):
             filepath = os.path.join(FOLDER_PATH, filename)
-            print(f"Processing: {filename}")
             
             month, year, project = parse_filename(filename)
             data = extract_data_from_file(filepath)
@@ -144,13 +142,22 @@ def main():
             all_data.append(row_data)
 
     df = pd.DataFrame(all_data)
+    
+    # Sort chronologically
     df = df.sort_values(by=['Year', 'Month'])
+    
+    # Ensure consistent column order and fill missing values with 0
     df = df.reindex(columns=final_columns, fill_value=0)
     
     df.to_excel(OUTPUT_FILE, index=False)
-    print(f"\n✅ Finished! Data stored at {OUTPUT_FILE}")
-    print(f"Total processed file: {len(all_data)}")
 ```
+Key Transformations:
+📊 Column Standardization: The final_columns list enforces a consistent column order matching accounting standards (Revenue → COGS → Gross Profit → Expenses → Net Profit), making the output immediately usable for reporting.
+📊 Chronological Sorting: df.sort_values(by=['Year', 'Month']) organizes projects by time period, enabling easy monthly aggregation in the dashboard.
+Missing Value Handling: df.reindex(columns=final_columns, fill_value=0) ensures all 27 expected columns exist in every row, filling any missing categories with 0 for financial report consistency.
+📊 File Filtering: The condition not filename.startswith('~$') excludes temporary Excel lock files that Windows creates when files are open, preventing extraction errors.
+
+
 ---
 
 ## 📈 The Output: Financial Dashboard
