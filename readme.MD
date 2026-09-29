@@ -112,8 +112,10 @@ annual_summary = df.groupby('Year')[['Total Revenue', 'Total Expenses', 'Net Pro
 ## 📈 The Output: Financial Dashboard
 The pipeline produces an integrated, clean, and decision-ready Google Sheets file.
 1. **Annual P&L with KPI Scorecard**
+![Annual Dashboard](screenshots/annual_dashboard.png)
 Provides an executive summary at the top with key metrics (Total Revenue, Total Expenses, Net Profit, Profit Margin) dynamically pulled from the database. Expense details are organized into clear categories as requested by the client.
 2. **Monthly P&L Comparative Report**
+![Annual Dashboard](screenshots/monthly_dashboard.png)
 Breaks down 12-month data into a horizontal format, enabling clients to compare spending month-to-month on an apple-to-apples basis. Includes Conditional Formatting (Green for profit, Red for loss) for easy visual reading.
 
 ---
