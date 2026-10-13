@@ -40,21 +40,17 @@ TOTALS_IN_ORDER = [
 ]
 
 def parse_filename(filename):
-    """
-    Extracts Month, Year, and Project Name from inconsistent filename formats.
-    Input examples: '1.5_1.16.2025 - Project Name.xlsx', '2.11-12.2025 - Event.xlsx'
-    """
     name = filename.replace('.xlsx', '')
     
     # Extract Month (first number in filename)
     month_match = re.match(r'^(\d{1,2})', name)
     month = int(month_match.group(1)) if month_match else 0
     
-    # Extract Year (4-digit number anywhere in filename)
+    # Extract Year (4-digit number)
     year_match = re.search(r'(\d{4})', name)
     year = int(year_match.group(1)) if year_match else 2025
     
-    # Extract Project Name (remove date prefix with various separators)
+    # Extract Project Name (remove date prefix)
     project_name = re.sub(r'^\d{1,2}[.\-_]\d{1,2}[.\-_]?\d{0,2}\s*[-]?\s*', '', name)
     
     return month, year, project_name
@@ -64,11 +60,11 @@ def clean_label(text):
     return text.split('(')[0].strip()
 
 def find_value_in_row(ws, row_num, label_text):
-    """Find value at column  C, then find value at column E"""
-    for col in ['C', 'D', 'E', 'F', 'G']:  # Coba beberapa kolom untuk label
+    
+    for col in ['C', 'D', 'E', 'F', 'G']:
         cell = ws[f'{col}{row_num}']
         if cell.value and label_text.upper() in str(cell.value).upper():
-            # Ketemu labelnya, sekarang cari nilai di kolom E (atau kolom setelahnya)
+            
             value_cell = ws[f'E{row_num}']
             return value_cell.value if value_cell.value else 0
     return 0
@@ -81,7 +77,7 @@ def extract_data_from_file(filepath):
     for cat in CATEGORIES_IN_ORDER:
         data[cat] = 0
 
-    # Scan rows 1-50 (covers all data sections + noise)
+    # Scan rows 1-50
     for row_num in range(1, 51):
         cell_c = ws[f'C{row_num}']
         cell_e = ws[f'E{row_num}']
@@ -92,13 +88,13 @@ def extract_data_from_file(filepath):
         text_c = str(cell_c.value).upper()
         val_e = cell_e.value if cell_e.value is not None else 0
         
-        # Match against TOTALS keywords
+
         for total_name in TOTALS_IN_ORDER:
             if total_name.upper() in text_c:
                 data[total_name] = val_e
                 break
         
-        # Match against DETAIL CATEGORIES keywords
+
         for cat in CATEGORIES_IN_ORDER:
             if cat.upper() in text_c:
                 data[cat] = val_e
@@ -138,8 +134,8 @@ def main():
     df = df.reindex(columns=final_columns, fill_value=0)
     
     df.to_excel(OUTPUT_FILE, index=False)
-    print(f"\n✅ Selesai! Data tersimpan di {OUTPUT_FILE}")
-    print(f"Total file diproses: {len(all_data)}")
+    print(f"\n✅ Completed! Data saved at {OUTPUT_FILE}")
+    print(f"Total process file: {len(all_data)}")
 
 if __name__ == '__main__':
     main()
